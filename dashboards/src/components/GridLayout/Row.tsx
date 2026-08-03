@@ -17,6 +17,7 @@ import { ReactElement, useEffect, useMemo, useState } from 'react';
 import { Layout, Layouts, Responsive, WidthProvider } from 'react-grid-layout';
 import { ErrorAlert, ErrorBoundary } from '@perses-dev/components';
 import { PanelGroupId } from '@perses-dev/plugin-system';
+import { BooleanParam, JsonParam, useQueryParam } from 'use-query-params';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_SMALL_BREAKPOINT } from '../../constants';
 import { PanelGroupDefinition, PanelGroupItemLayout } from '../../model';
 import { GridContainer } from './GridContainer';
@@ -57,6 +58,27 @@ export function Row({
   const ResponsiveGridLayout = useMemo(() => WidthProvider(Responsive), []);
   const theme = useTheme();
   const viewPanelItemId = useViewPanelGroup();
+  const [detailedView] = useQueryParam('detailedView', BooleanParam);
+  const isDetailedView = detailedView === true;
+
+  // Selected panels view mode
+  const [selectedPanels] = useQueryParam('selectedPanels', JsonParam);
+  const [panelSelectMode] = useQueryParam('panelSelectMode', BooleanParam);
+  const isViewingSelected = Array.isArray(selectedPanels) && selectedPanels.length > 0 && panelSelectMode !== true;
+
+  // When viewing selected panels, only keep selected items in the layout so
+  // react-grid-layout's vertical compaction removes gaps automatically.
+  const selectedLayoutIds = useMemo<Set<string>>(() => {
+    if (!isViewingSelected || !Array.isArray(selectedPanels)) return new Set();
+    const refs = selectedPanels as string[];
+    return new Set(
+      Object.entries(groupDefinition.itemPanelKeys)
+        .filter(([, panelKey]) => refs.includes(panelKey))
+        .map(([layoutId]) => layoutId)
+    );
+  }, [isViewingSelected, selectedPanels, groupDefinition.itemPanelKeys]);
+
+  const groupHasSelectedPanels = !isViewingSelected || selectedLayoutIds.size > 0;
 
   const [isOpen, setIsOpen] = useState(!groupDefinition.isCollapsed);
 
@@ -68,7 +90,7 @@ export function Row({
   const itemLayoutViewed = viewPanelItemId?.panelGroupItemLayoutId;
 
   // If there is a panel in view mode, we should hide the grid if the panel is not in the current group.
-  const isGridDisplayed = !viewPanelItemId || hasViewPanel;
+  const isGridDisplayed = (!viewPanelItemId || hasViewPanel) && groupHasSelectedPanels;
 
   // TODO: handle it without useEffect
   useEffect(() => {
@@ -82,7 +104,7 @@ export function Row({
     if (itemLayoutViewed) {
       return groupDefinition.itemLayouts.map((itemLayout) => {
         if (itemLayout.i === itemLayoutViewed) {
-          const rowTitleHeight = 40 + 8; // 40 is the height of the row title and 8 is the margin height
+          const rowTitleHeight = isDetailedView ? 0 : 40 + 8; // Hide title height in detailed view
           return {
             h: Math.round(((panelFullHeight ?? window.innerHeight) - rowTitleHeight) / (ROW_HEIGHT + DEFAULT_MARGIN)), // Viewed panel should take the full height remaining
             i: itemLayoutViewed,
@@ -95,7 +117,14 @@ export function Row({
       });
     }
     return groupDefinition.itemLayouts;
-  }, [groupDefinition.itemLayouts, itemLayoutViewed, panelFullHeight]);
+  }, [groupDefinition.itemLayouts, itemLayoutViewed, panelFullHeight, isDetailedView]);
+
+  // When viewing selected panels, only pass selected items to the grid so react-grid-layout
+  // compacts them vertically, eliminating gaps left by hidden panels.
+  const displayedLayouts = useMemo(() => {
+    if (!isViewingSelected) return itemLayouts;
+    return itemLayouts.filter((l) => selectedLayoutIds.has(l.i));
+  }, [itemLayouts, isViewingSelected, selectedLayoutIds]);
 
   return (
     <GridContainer
@@ -105,7 +134,7 @@ export function Row({
         overflow: itemLayoutViewed ? 'hidden' : 'unset',
       }}
     >
-      {groupDefinition.title && (
+      {groupDefinition.title && !isDetailedView && !isViewingSelected && (
         <GridTitle
           panelGroupId={panelGroupId}
           title={groupDefinition.title}
@@ -128,12 +157,12 @@ export function Row({
           isResizable={isEditMode && !hasViewPanel}
           margin={[DEFAULT_MARGIN, DEFAULT_MARGIN]}
           containerPadding={[0, 10]}
-          layouts={{ sm: itemLayouts }}
+          layouts={{ sm: displayedLayouts, xxs: displayedLayouts }}
           onLayoutChange={onLayoutChange}
           onWidthChange={onWidthChange}
           allowOverlap={hasViewPanel} // Enabling overlap when viewing a specific panel because panel in front of the viewed panel will add empty spaces (empty row height)
         >
-          {itemLayouts.map(({ i, w }) => (
+          {displayedLayouts.map(({ i, w }) => (
             <div
               key={i}
               style={{

@@ -17,6 +17,7 @@ import { ChartsProvider, ErrorAlert, ErrorBoundary, useChartsTheme } from '@pers
 import { useDatasourceStore } from '@perses-dev/plugin-system';
 import { DashboardSpec } from '@perses-dev/spec';
 import { DashboardResource } from '@perses-dev/client';
+import { BooleanParam, JsonParam, useQueryParam } from 'use-query-params';
 import {
   PanelDrawer,
   Dashboard,
@@ -87,6 +88,17 @@ const DashboardAppContent = (props: DashboardAppProps): ReactElement => {
 
   const { setSavedDatasources } = useDatasourceStore();
 
+  // Check if we're in detailed view mode
+  const [detailedView] = useQueryParam('detailedView', BooleanParam);
+  const isDetailedView = detailedView === true;
+
+  // Check if we're in selected panels view mode
+  const [selectedPanels] = useQueryParam('selectedPanels', JsonParam);
+  const [panelSelectMode] = useQueryParam('panelSelectMode', BooleanParam);
+  const isViewingSelected = Array.isArray(selectedPanels) && selectedPanels.length > 0 && panelSelectMode !== true;
+
+  const hideToolbar = isDetailedView || isViewingSelected;
+
   const { openDiscardChangesConfirmationDialog, closeDiscardChangesConfirmationDialog } =
     useDiscardChangesConfirmationDialog();
 
@@ -146,20 +158,22 @@ const DashboardAppContent = (props: DashboardAppProps): ReactElement => {
         flexDirection: 'column',
       }}
     >
-      <DashboardToolbar
-        dashboardName={dashboardResource.metadata.name}
-        timezone={toolBarTimezone}
-        dashboardTitleComponent={dashboardTitleComponent}
-        initialVariableIsSticky={isInitialVariableSticky}
-        onSave={onSave}
-        isReadonly={isReadonly}
-        isVariableEnabled={isVariableEnabled}
-        isAnnotationEnabled={isAnnotationEnabled}
-        isDatasourceEnabled={isDatasourceEnabled}
-        onEditButtonClick={onEditButtonClick}
-        onCancelButtonClick={onCancelButtonClick}
-      />
-      <Box sx={{ paddingTop: 2, paddingX: 2, height: '100%' }}>
+      {!hideToolbar && (
+        <DashboardToolbar
+          dashboardName={dashboardResource.metadata.name}
+          timezone={toolBarTimezone}
+          dashboardTitleComponent={dashboardTitleComponent}
+          initialVariableIsSticky={isInitialVariableSticky}
+          onSave={onSave}
+          isReadonly={isReadonly}
+          isVariableEnabled={isVariableEnabled}
+          isAnnotationEnabled={isAnnotationEnabled}
+          isDatasourceEnabled={isDatasourceEnabled}
+          onEditButtonClick={onEditButtonClick}
+          onCancelButtonClick={onCancelButtonClick}
+        />
+      )}
+      <Box sx={{ paddingTop: hideToolbar ? 0 : 2, paddingX: hideToolbar ? 0 : 2, height: '100%' }}>
         <ErrorBoundary FallbackComponent={ErrorAlert}>
           <Dashboard
             emptyDashboardProps={{

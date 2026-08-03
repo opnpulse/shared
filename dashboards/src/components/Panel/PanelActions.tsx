@@ -18,6 +18,7 @@ import { QueryData } from '@perses-dev/plugin-system';
 import DatabaseSearch from 'mdi-material-ui/DatabaseSearch';
 import ArrowCollapseIcon from 'mdi-material-ui/ArrowCollapse';
 import ArrowExpandIcon from 'mdi-material-ui/ArrowExpand';
+import OpenInNewIcon from 'mdi-material-ui/OpenInNew';
 import PencilIcon from 'mdi-material-ui/PencilOutline';
 import DeleteIcon from 'mdi-material-ui/DeleteOutline';
 import DragIcon from 'mdi-material-ui/DragVertical';
@@ -60,6 +61,9 @@ export interface PanelActionsProps {
     isPanelViewed?: boolean;
     onViewPanelClick: () => void;
   };
+  detailedViewHandler?: {
+    onDetailedViewClick: () => void;
+  };
   viewQueriesHandler?: {
     onClick: () => void;
   };
@@ -80,6 +84,7 @@ const ConditionalBox = styled(Box)({
 export const PanelActions: React.FC<PanelActionsProps> = ({
   editHandlers,
   readHandlers,
+  detailedViewHandler,
   viewQueriesHandler,
   extra,
   title,
@@ -179,6 +184,23 @@ export const PanelActions: React.FC<PanelActionsProps> = ({
     return undefined;
   }, [readHandlers, title]);
 
+  const detailedViewAction = useMemo((): ReactNode | undefined => {
+    if (detailedViewHandler !== undefined) {
+      return (
+        <InfoTooltip description={TOOLTIP_TEXT.detailedViewPanel}>
+          <HeaderIconButton
+            aria-label={ARIA_LABEL_TEXT.detailedViewPanel(title)}
+            size="small"
+            onClick={detailedViewHandler.onDetailedViewClick}
+          >
+            <OpenInNewIcon fontSize="inherit" />
+          </HeaderIconButton>
+        </InfoTooltip>
+      );
+    }
+    return undefined;
+  }, [detailedViewHandler, title]);
+
   const viewQueryAction = useMemo(() => {
     if (!viewQueriesHandler?.onClick) return null;
     return (
@@ -272,7 +294,7 @@ export const PanelActions: React.FC<PanelActionsProps> = ({
         <OnHover>
           <OverflowMenu title={title}>
             {descriptionAction} {linksAction} {queryStateIndicator} {noticesIndicator} {extraActions} {viewQueryAction}
-            {readActions} {pluginActions} {itemActions}
+            {readActions} {detailedViewAction} {pluginActions} {itemActions}
             {editActions}
           </OverflowMenu>
           {moveAction}
@@ -295,6 +317,7 @@ export const PanelActions: React.FC<PanelActionsProps> = ({
         <OnHover>
           {extraActions}
           {readActions}
+          {detailedViewAction}
           <OverflowMenu title={title}>
             {editActions} {viewQueryAction} {pluginActions} {itemActions}
           </OverflowMenu>
@@ -318,7 +341,7 @@ export const PanelActions: React.FC<PanelActionsProps> = ({
         <OnHover>
           {extraActions}
           {viewQueryAction}
-          {readActions} {editActions}
+          {readActions} {detailedViewAction} {editActions}
           {/* Show plugin actions inside a menu if it gets crowded */}
           {pluginActions.length <= 1 ? pluginActions : <OverflowMenu title={title}>{pluginActions}</OverflowMenu>}
           {itemActions.length <= 1 ? (

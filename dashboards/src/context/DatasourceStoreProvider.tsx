@@ -28,6 +28,7 @@ import {
   DatasourceApi,
   DatasourceDefinition,
 } from '@perses-dev/client';
+import { useDecodedActiveUser } from './useDecodedUser';
 
 export interface DatasourceStoreProviderProps {
   dashboardResource?: DashboardResource;
@@ -52,6 +53,7 @@ export function DatasourceStoreProvider(props: DatasourceStoreProviderProps): Re
   const project = projectName ?? dashboardResource?.metadata.project;
 
   const { getPlugin, listPluginMetadata } = usePluginRegistry();
+  const owner = useDecodedActiveUser();
 
   // Helper to create cache key from DatasourceSelector
   const createCacheKey = useCallback(
@@ -73,6 +75,7 @@ export function DatasourceStoreProvider(props: DatasourceStoreProviderProps): Re
           proxyUrl: buildDatasourceProxyUrl(datasourceApi, {
             project: dashboardResource.metadata.project,
             dashboard: dashboardResource.metadata.name,
+            owner: owner,
             name: dashboardDatasource.name,
           }),
         };
@@ -91,6 +94,7 @@ export function DatasourceStoreProvider(props: DatasourceStoreProviderProps): Re
           spec: datasource.spec,
           proxyUrl: buildDatasourceProxyUrl(datasourceApi, {
             project: datasource.metadata.project,
+            owner: owner,
             name: datasource.metadata.name,
           }),
         };

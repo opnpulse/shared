@@ -31,6 +31,7 @@ import { PanelHeader, PanelHeaderProps } from './PanelHeader';
 export interface PanelProps extends CardProps<'section'> {
   definition: PanelDefinition;
   readHandlers?: PanelHeaderProps['readHandlers'];
+  detailedViewHandler?: PanelHeaderProps['detailedViewHandler'];
   editHandlers?: PanelHeaderProps['editHandlers'];
   panelOptions?: PanelOptions;
   panelGroupItemId?: PanelGroupItemId;
@@ -78,6 +79,7 @@ export const Panel = memo(function Panel(props: PanelProps) {
   const {
     definition,
     readHandlers,
+    detailedViewHandler,
     editHandlers,
     onMouseEnter,
     onMouseLeave,
@@ -215,6 +217,7 @@ export const Panel = memo(function Panel(props: PanelProps) {
               description={definition.spec.display?.description}
               queryResults={queryResults}
               readHandlers={readHandlers}
+              detailedViewHandler={detailedViewHandler}
               editHandlers={editHandlers}
               viewQueriesHandler={viewQueriesHandler}
               links={definition.spec.links}
